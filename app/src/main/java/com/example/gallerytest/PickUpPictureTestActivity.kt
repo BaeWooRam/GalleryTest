@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
@@ -11,12 +12,15 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.core.content.FileProvider
 import com.example.gallerytest.base.PermissionActivity
+import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.min
 
 
 class PickUpPictureTestActivity : PermissionActivity(R.layout.activity_main) {
@@ -24,17 +28,21 @@ class PickUpPictureTestActivity : PermissionActivity(R.layout.activity_main) {
     private var _currentPhotoPath: String = ""
     private val FROM_CAMERA = 0
     private val REQUEST_TAKE_PHOTO = 1
-    private val _values = ContentValues().apply {
+
+    val values = ContentValues().apply {
+        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
+        put(MediaStore.Images.Media.TITLE, timeStamp);
         put(MediaStore.Images.Media.DISPLAY_NAME, "my_image_q.jpg")
         put(MediaStore.Images.Media.MIME_TYPE, "image/jpg")
         put(MediaStore.Images.Media.IS_PENDING, 1)
     }
 
-    private val _collection: Uri = MediaStore.Images.Media
-        .getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-
     override fun getCheckPermission(): Array<String> {
-        return arrayOf("android.permission.CAMERA", "android.permission.READ_EXTERNAL_STORAGE")
+        return arrayOf(
+            "android.permission.CAMERA",
+            "android.permission.READ_EXTERNAL_STORAGE",
+            "android.permission.WRITE_EXTERNAL_STORAGE"
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,8 +62,8 @@ class PickUpPictureTestActivity : PermissionActivity(R.layout.activity_main) {
 
         if (permission.isRequestCode(requestCode) && permission.isGrantResults(grantResults)) {
             GlobalScope.async {
-//                takePhoto()
-                dispatchTakePictureIntent()
+                                takePhoto()
+//                dispatchTakePictureIntent()
             }
         } else {
             finish()
@@ -74,12 +82,13 @@ class PickUpPictureTestActivity : PermissionActivity(R.layout.activity_main) {
             FROM_CAMERA -> {
                 val imageBitmap = data?.extras?.get("data") as Bitmap
                 Log.d("FROM_CAMERA", imageBitmap.toString())
-
+                image.setImageBitmap(imageBitmap)
             }
 
             REQUEST_TAKE_PHOTO -> {
                 Log.d("REQUEST_TAKE_PHOTO", "내부 저장소에 성공적으로 저장되었습니다.")
                 galleryAddPic()
+//                setPic()
             }
         }
     }
@@ -97,6 +106,7 @@ class PickUpPictureTestActivity : PermissionActivity(R.layout.activity_main) {
     }
 
 
+
     /**
      * 카메라 찍고 파일로 내부 저장소에 저장한다.
      */
@@ -109,7 +119,7 @@ class PickUpPictureTestActivity : PermissionActivity(R.layout.activity_main) {
                     createTempImageFile()
                 } catch (ex: IOException) {
                     // Error occurred while creating the File
-                    Log.e("createImageFile", "Erro Create File")
+                    Log.e("createImageFile", "Error Create File")
                     null
                 }
 
@@ -157,4 +167,28 @@ class PickUpPictureTestActivity : PermissionActivity(R.layout.activity_main) {
         }
     }
 
+    private fun setPic() {
+        // Get the dimensions of the View
+        val targetW: Int = image.width
+        val targetH: Int = image.height
+
+        val bmOptions = BitmapFactory.Options().apply {
+            // Get the dimensions of the bitmap
+            inJustDecodeBounds = true
+
+            val photoW: Int = outWidth
+            val photoH: Int = outHeight
+
+            // Determine how much to scale down the image
+            val scaleFactor: Int = min(photoW / targetW, photoH / targetH)
+
+            // Decode the image file into a Bitmap sized to fill the View
+            inJustDecodeBounds = false
+            inSampleSize = scaleFactor
+            inPurgeable = true
+        }
+        BitmapFactory.decodeFile(_currentPhotoPath, bmOptions)?.also { bitmap ->
+            image.setImageBitmap(bitmap)
+        }
+    }
 }

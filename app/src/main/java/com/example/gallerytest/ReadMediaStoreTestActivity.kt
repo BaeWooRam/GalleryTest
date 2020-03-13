@@ -1,6 +1,7 @@
 package com.example.gallerytest
 
 import android.content.ContentUris
+import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
 import com.example.gallerytest.base.PermissionActivity
@@ -29,12 +30,24 @@ class ReadMediaStoreTestActivity : PermissionActivity(R.layout.activity_main) {
         return arrayOf("android.permission.READ_EXTERNAL_STORAGE")
     }
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        if(permission.isGrantPermission)
+            GlobalScope.async {
+                getImage()
+                getAlbumNames()
+            }
+
+    }
+
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
         if (permission.isRequestCode(requestCode) && permission.isGrantResults(grantResults)) {
             GlobalScope.async {
                 getImage()
+                getAlbumNames()
             }
         }else {
             finish()
@@ -72,6 +85,33 @@ class ReadMediaStoreTestActivity : PermissionActivity(R.layout.activity_main) {
                             "$dateTaken, content_uri: $contentUri"
                     )
 
+                }
+            }
+        }
+    }
+
+    private suspend fun getAlbumNames(){
+        withContext(Dispatchers.IO) {
+            val projection =
+                arrayOf("DISTINCT " + MediaStore.Images.Media.BUCKET_DISPLAY_NAME)
+
+            val cursor = contentResolver.query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                null,
+                null,
+                null
+            )
+
+            cursor?.use {
+                if (it!!.moveToFirst()) {
+                    var bucket: String?
+                    val bucketColumn =
+                        it.getColumnIndex(MediaStore.Images.Media.BUCKET_DISPLAY_NAME)
+                    do {
+                        bucket = it.getString(bucketColumn)
+                        Log.e("folderName", bucket)
+                    } while (it.moveToNext())
                 }
             }
         }
