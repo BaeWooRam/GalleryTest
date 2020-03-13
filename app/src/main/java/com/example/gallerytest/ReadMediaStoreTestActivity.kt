@@ -55,6 +55,9 @@ class ReadMediaStoreTestActivity : PermissionActivity(R.layout.activity_main) {
 
     }
 
+    /**
+     * 이미지 리스트 가져오기
+     */
     private suspend fun getImage(){
         withContext(Dispatchers.IO) {
             val cursor = contentResolver.query(
@@ -90,6 +93,9 @@ class ReadMediaStoreTestActivity : PermissionActivity(R.layout.activity_main) {
         }
     }
 
+    /**
+     * 사진 앨범명 리스트 가져오기
+     */
     private suspend fun getAlbumNames(){
         withContext(Dispatchers.IO) {
             val projection =
