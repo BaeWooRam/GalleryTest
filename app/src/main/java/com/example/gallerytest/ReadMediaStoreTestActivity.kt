@@ -11,7 +11,7 @@ import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
-class MediaStoreTestActivity : PermissionActivity(R.layout.activity_main) {
+class ReadMediaStoreTestActivity : PermissionActivity(R.layout.activity_main) {
     private val projection = arrayOf(
         MediaStore.Images.Media._ID,
         MediaStore.Images.Media.DISPLAY_NAME,
